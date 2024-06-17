@@ -1,0 +1,181 @@
+---
+- name: Basic config to all nodes
+  hosts: all
+  vars_files:
+    - vars/prerequisites.yaml
+  tasks:
+
+
+      #El SELinux, or Set Enforce Linux, es un módulo de seguridad disponible en distribucione basadas en Red-Hat de forma nativa. También puede hallarse en muchas otras. Sin embargo, es demasiado restrictivo por defecto. Las opciones son desactivarlo, ponerlo en modo restrictivo, donde en lugar de bloquear y registrar las acciones no permitidas solo las registra, o configurarlo. Dado que la cofiguración escapa al ámbito de este proyecto, se colocará en modo permisivo y se dejará su reactivación (a pesar de los problemas que pueda presentar) como una acción posterior a decisión del profesorado. Yo, personalmente, no lo recomiendo a menos que se tenga un conocimiento exhaustivo de Kubernetes y SELinux.
+    - name: Set SELinux to permissive mode, required for containers to access host files of kubernetes.
+      shell: setenforce 0
+      become: true
+
+
+      #Este comando edita un fichero y cambia la expresión regular coincidente con la expresión indicada.
+    - name: Continuation of previous task - setting SELinux to permissive mode.
+      shell: sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+      become: true
+
+      #Añadimos los repositoriios de kuerbentes. Este módulo de ansible copia un fichero jinja2, cambia sus variables por sus valores, y lo pega con el nombre indicado en la ruta indicada. Estas variables están en los ficheros dentro de la ruta indicada anteriormente.
+    - name: Add kubernetes repository
+      template:
+        src: "files/kubernetes.repo.j2"
+        dest: "/etc/yum.repos.d/kubernetes.repo"
+      become: true
+
+      #Añadimos los repositorios de cri-o, el motor de contenedores elegido para nuestro cluster.
+    - name: Add cri-o repository
+      template:
+        src: "files/cri-o.repo.j2"
+        dest: "/etc/yum.repos.d/cri-o.repo"
+      become: true
+
+      #Kubernetes no sabe gestionar la memoria swap con sus contenedores, por lo que debemos desactivarla.
+    - name: Disable Swap Memory (needed for kubernetes to work)
+      shell: swapoff -a
+      become: true
+
+      #Como parte de la tarea anterior, comentamos la entrada de la swap en el /etc/fstab, el fichero con la información relativa a los discos y sus montajes, para que no se vuelva a usar la memoria swap.
+    - name: Commenting fstab Swap entry
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+        replace: '# \1'
+      become: true
+
+      #Actualizamos los paquetes y el caché, y de paso también el sistema.
+    - name: Update packages and cache
+      yum:
+        name: '*'
+        state: latest
+        update_cache: yes
+      become: true
+
+      #Instalamos la herramienta que bootstrapeará el clúster de Kubernetes.
+    - name: Install Kubeadm
+      yum:
+        name: kubeadm
+        state: latest
+        disable_excludes: kubernetes
+      become: true
+
+###### Configuramos los pre-requisitos para que Kubernetes pueda funcionar debidamente. ######
+    - name: Pre-requisites - editing files part 1-1.
+      lineinfile:
+        path: /etc/modules-load.d/k8s.conf
+        create: true
+        line: overlay
+        insertafter: "EOF"
+      become: true
+
+    - name: Pre-requisites - editing files part 1-2.
+      lineinfile:
+        path: /etc/modules-load.d/k8s.conf
+        create: true
+        line: br_netfilter
+        insertafter: "EOF"
+      become: true
+
+    - name: Pre-requisites - commands for previous tasks 1.
+      shell: modprobe overlay
+      become: true
+
+    - name: Pre-requisites - commands for previous tasks 2.
+      shell: modprobe br_netfilter
+      become: true
+
+    - name: Pre-requisites - editing files part 2-1.
+      lineinfile:
+        path: /etc/sysctl.d/k8s.conf
+        create: true
+        line: net.bridge.bridge-nf-call-iptables  = 1
+        insertafter: "EOF"
+      become: true
+
+    - name: Pre-requisites - editing files part 2-2.
+      lineinfile:
+        path: /etc/sysctl.d/k8s.conf
+        create: true
+        line: net.bridge.bridge-nf-call-ip6tables  = 1
+        insertafter: "EOF"
+      become: true
+
+    - name: Pre-requisites - editing files part 2-3.
+      lineinfile:
+        path: /etc/sysctl.d/k8s.conf
+        create: true
+        line: net.ipv4.ip_forward  = 1
+        insertafter: "EOF"
+      become: true
+
+    - name: Pre-requisites - command for previous tasks
+      shell: sysctl --system
+      become: true
+
+      #Instalar CRI-O y sus dependencias.
+    - name: Installing CRI-O dependencies
+      dnf:
+        name:
+          - conntrack
+          - container-selinux
+          - ebtables
+          - ethtool
+          - iptables
+          - socat
+        state: "latest"
+        disable_excludes: all
+      become: true
+        
+    - name: Installing CRI-O
+      dnf:
+        name: cri-o
+        state: "latest"
+        enablerepo:
+          - cri-o
+          - kubernetes
+        disable_excludes: all
+      become: true
+
+    - name: Enable CRI-O
+      service:
+        name: crio
+        state: started
+        enabled: yes
+      become: true
+
+      #Desactivar el Firewall. Esta acción puede revertirse para, en su lugar, configurarlo para que solo permite el tráfico elegido. En este caso particular, desactivo el firewall porque, o bien se usará otro, o bien no se usará ninguno. Pero es reversible.
+    - name: Disable firewall (dont do this, fix later)
+      service:
+        name: firewalld
+        state: stopped
+        enabled: no
+      become: true
+
+      #Instalar Kubelet, el daemon y agente que controla los contenedores de kubernetes en todos los nodos. No es necesario que los nodos del control plane lo tengan, pero sí en este caso ya que vamos a ejectuar contenedores ahí.
+    - name: Install kubelet
+      yum:
+        name: kubelet
+        state: latest
+        disable_excludes: kubernetes
+      become: true
+
+    - name: Enable kubelet
+      service:
+        name: kubelet
+        state: started
+        enabled: yes
+      become: true
+
+- name: Control plane
+  hosts: control_plane
+  tasks:
+
+      #Instalamos kubectl en el control plane. Luego proseguiremos con el resto de la configuración.
+    - name: Install Kubectl
+      #Command line to control kubernetes
+      yum:
+        name: kubectl
+        state: latest
+        disable_excludes: kubernetes
+      become: true

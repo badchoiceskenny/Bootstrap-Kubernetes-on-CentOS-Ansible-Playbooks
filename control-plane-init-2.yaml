@@ -1,0 +1,42 @@
+---
+- name: Control plane manifests
+  hosts: kmaster_main
+  tasks:
+
+      #Convierto el comando de unirse al control plane en un objeto de ansible.
+    - name: Get join command for other master nodes.
+      shell: grep 'kubeadm join [[:print:]]* --control-plane' {{ user_home }}/cluster_initialized.log
+      register: kube_master_join_raw
+
+      #Lo mismo que el paso anterior, pero con el contenido del manifiesto de kube-vip.
+    - name: Copy kube-vip manifest to other control plane nodes
+      shell: cat /etc/kubernetes/manifests/kube-vip.yaml
+      register: kubevip_manifest_content_raw
+
+      #Creo variables globales usando los atributos de los obejtos anteriores con la información que necesito.
+    - name: Make variables global
+      set_fact: 
+        kube_master_join: "{{ kube_master_join_raw.stdout_lines[0] }}"
+        kubevip_manifest_content: "{{ kubevip_manifest_content_raw.stdout }}"
+
+- name: 
+  hosts: kmaster_secondary
+  vars_files:
+    - vars/cni_calico_config.yml
+  tasks:
+
+      #Ejecuto el comando que necesito y guardo el output en un log.
+    - name: Join control plane
+      shell: "{{ kube_master_join }} >> {{ user_home }}/cluster_joined_control_plane.log"
+      become: true
+
+      #Copio una plantilla que tendrá los contenidos del manifiesto a cada nodo maestro.
+    - name: Create kube-vip manifest
+      template:
+        src: files/kube-vip.yaml.j2
+        dest: "/etc/kubernetes/manifests/kube-vip.yaml"
+
+      #Además, instalo los binarios de calicoctl, la línea de consola para acceder a todas las configuraciones de calico disponibles.
+    - name: Install calicoctl 
+      shell: curl -L {{ calicoctl_binary_url }} -o /usr/local/bin/
+      become: true

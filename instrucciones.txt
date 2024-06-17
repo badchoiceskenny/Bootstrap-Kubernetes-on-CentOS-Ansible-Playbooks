@@ -1,0 +1,40 @@
+Para actualizar la versión de Kubernetes ve a vars/prerequisites.yaml.
+Edite el archivo inventory.yaml. Debe tener la siguiente estructura:
+grupo_de_maquinas_host:
+  hosts:
+    host_primero:
+      ansible_host: IP_del_host_primero
+      otra_variable: valor_de_variable
+    host_segundo:
+  [...]
+
+La variable "ansible_host" indica la ip del miembro del ivnentario.
+En caso de que haya un dns que resuelva host_primero a una dirección IP, esta variable no es necesaria.
+En caso de tener que modificar la red interna que tendrá Kubernetes, la variable que indica cuál será está en vars/cni_calico_config.yaml.
+En caso de querer darle a Kube-VIP, el balanceador de carga, otra IP, puede hacerlo en vars/manifest.yaml.
+
+Todos los playbooks están comentados explicando paso a paso lo que hacen.
+
+Una vez establecidas qué máquinas serán los nodos del control plane y todas las variables, puede comenzar la ejecución de los playbooks.
+El orden es:
+prerequisites.yaml
+control-plane-manifest.yaml
+control-plane-init-1.yaml
+control-plane-init-2.yaml
+worker-nodes-join.yaml
+
+Los certificados creados automáticamente para permitir a los miembros del clúster unirse durante estos pasos duran 2 horas.
+Si tras esas dos horas se desean unir nuevos miembros, hay que volver a generar los certificados.
+Para generar los certificados se usa:
+sudo kubeadm init phase upload-certs --upload-certs
+Si se desea especificar la clave, se usa:
+kubeadm certs certificate-key
+
+
+Estos playbooks fueron creados siguiendo las distintas documentaciones oficiales:
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/
+https://github.com/kubernetes/kubeadm/blob/main/docs/ha-considerations.md#options-for-software-load-balancing
+https://kube-vip.io/docs/installation/static/
+https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart
+https://docs.tigera.io/calico/latest/operations/calicoctl/install

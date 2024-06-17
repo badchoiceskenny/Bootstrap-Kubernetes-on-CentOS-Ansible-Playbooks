@@ -1,0 +1,50 @@
+control_plane:
+  hosts:
+    kmaster1:
+      ansible_host: 192.168.9.121
+      ansible_user: kubernetesadmin
+      user_home: "/home/kubernetesadmin"
+      kmaster_node_iface: ens18
+    kmaster2:
+      ansible_host: 192.168.9.122
+      ansible_user: kubernetesadmin
+      user_home: "/home/kubernetesadmin"
+      kmaster_node_iface: ens18
+    kmaster3:
+      ansible_host: 192.168.9.123
+      ansible_user: kubernetesadmin
+      user_home: "/home/kubernetesadmin"
+      kmaster_node_iface: ens18
+worker_nodes:
+  hosts:
+    kworker1:
+      ansible_host: 192.168.9.141
+      ansible_user: kubernetesadmin
+      user_home: "/home/kubernetesadmin"
+    kworker2:
+      ansible_host: 192.168.9.142
+      ansible_user: kubernetesadmin
+      user_home: "/home/kubernetesadmin"
+    kworker3:
+      ansible_host: 192.168.9.143
+      ansible_user: kubernetesadmin
+      user_home: "/home/kubernetesadmin"
+kmaster_main:
+  hosts:
+    kmaster1:
+      ansible_host: 192.168.9.121
+      ansible_user: kubernetesadmin
+      user_home: "/home/kubernetesadmin"
+      kmaster_node_iface: ens18
+kmaster_secondary:
+  hosts:
+    kmaster2:
+      ansible_host: 192.168.9.122
+      ansible_user: kubernetesadmin
+      user_home: "/home/kubernetesadmin"
+      kmaster_node_iface: ens18
+    kmaster3:
+      ansible_host: 192.168.9.123
+      ansible_user: kubernetesadmin
+      user_home: "/home/kubernetesadmin"
+      kmaster_node_iface: ens18
