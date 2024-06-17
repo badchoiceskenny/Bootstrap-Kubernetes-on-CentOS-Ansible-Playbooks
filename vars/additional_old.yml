@@ -1,0 +1,11 @@
+---
+#Kubernetes Version (latest on 30-01-24 is 1.29)
+kubernetes_version: "v1.29"
+#CRI-O version, should be the same as kubernetes version
+crio_version: "1.29"
+#OS TAG, follow this list:
+#CentOS 9 Stream == CentOS_9_Stream
+#CentOS 8 == CentOS_8
+#CentOS 8 Stream == CentOS_8_Stream
+#CentOS 7 == CentOS_7
+os_tag: "CentOS_9_Stream"

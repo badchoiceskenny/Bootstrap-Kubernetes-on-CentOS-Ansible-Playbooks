@@ -1,0 +1,3 @@
+kvip_manifest_ip: "192.168.9.120"
+#To get the latest version go to https://api.github.com/repos/kube-vip/kube-vip/releases
+kubevip_version: "v0.8.0"
