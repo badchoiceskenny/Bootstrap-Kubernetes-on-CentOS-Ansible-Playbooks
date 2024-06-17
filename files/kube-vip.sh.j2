@@ -1,0 +1,7 @@
+#!/bin/bash
+
+export VIP={{ kvip_manifest_ip }}
+export INTERFACE={{ kmaster_node_iface }}
+export KVVERSION={{ kubevip_version }}
+alias kube-vip="sudo podman run --network host --rm ghcr.io/kube-vip/kube-vip:$KVVERSION"
+kube-vip manifest pod --interface $INTERFACE --address $VIP --controlplane --services --arp --leaderElection | tee /etc/kubernetes/manifests/kube-vip.yaml
