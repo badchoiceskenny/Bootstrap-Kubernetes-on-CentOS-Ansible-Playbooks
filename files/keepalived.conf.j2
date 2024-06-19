@@ -1,0 +1,27 @@
+global_defs {
+    router_id LVS_DEVEL
+}
+vrrp_script check_apiserver {
+  script "/etc/keepalived/check_apiserver.sh"
+  interval 3
+  weight -2
+  fall 10
+  rise 2
+}
+
+vrrp_instance VI_1 {
+    state {{ keepalived_mode }}
+    interface {{ kmaster_node_iface }}
+    virtual_router_id {{ keepalived_cluster_id }}
+    priority {{ keepalived_priority }}
+    authentication {
+        auth_type PASS
+        auth_pass {{ auth_pas_for_cluster }}
+    }
+    virtual_ipaddress {
+        {{ keepalived_vip }}
+    }
+    track_script {
+        check_apiserver
+    }
+}
