@@ -1,3 +1,23 @@
 kvip_manifest_ip: "192.168.9.120"
 #To get the latest version go to https://api.github.com/repos/kube-vip/kube-vip/releases
 kubevip_version: "v0.8.0"
+
+############################################3
+#Keepalived and haproxy config
+keepalived_vip: "192.168.9.120/23"
+keepalived_cluster_id: "50"
+#Esto debe ser una contraseña segura
+auth_pas_for_cluster: "13"
+#A menos que lo cambies, deja este que es el default
+apiserver_dest_port: "6443"
+apiserver_src_port: "6443"
+#Agrega una entrada más por cada nodo maestro.
+haproxy_apiserver_node_1_name: "kube-apiserver-1"
+haproxy_apiserver_node_1_ip: "192.168.9.121"
+haproxy_apiserver_node_2_name: "kube-apiserver-2"
+haproxy_apiserver_node_2_ip: "192.168.9.122"
+haproxy_apiserver_node_3_name: "kube-apiserver-3"
+haproxy_apiserver_node_3_ip: "192.168.9.123"
+#versiones:
+keepalived_ver: "2.0.20"
+haproxy_ver: "2.8"
