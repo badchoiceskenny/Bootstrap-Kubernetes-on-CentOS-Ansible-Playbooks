@@ -65,6 +65,7 @@ Estos playbooks fueron creados siguiendo las distintas documentaciones oficiales
 https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/
 https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
 https://kubernetes.io/docs/setup/production-environment/container-runtimes/
+https://github.com/cri-o/cri-o/blob/main/install.md#readme
 https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/
 https://github.com/kubernetes/kubeadm/blob/main/docs/ha-considerations.md#options-for-software-load-balancing
 https://kube-vip.io/docs/installation/static/
