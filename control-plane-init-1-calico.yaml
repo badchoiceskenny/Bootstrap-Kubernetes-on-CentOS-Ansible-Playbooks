@@ -1,0 +1,59 @@
+---
+- name: Control plane manifests
+  hosts: kmaster_main
+  vars_files:
+    - vars/manifest.yaml
+    - vars/cni_calico_config.yaml
+  tasks:
+
+      #Primero hay que inicializar el cluster en un solo nodo maestro.
+    - name: Initialize first control plane node.
+      shell: kubeadm init --pod-network-cidr {{ inner_pod_network }} --control-plane-endpoint {{ kvip_manifest_ip }} --apiserver-advertise-address {{ ansible_host }} --upload-certs --v=5 >> {{ user_home }}/cluster_initialized.log
+      become: true
+
+      #Creo la configuración a partir de la configuración de ejemplo. Para ello debo crear el directorio y copiarla dentro.
+    - name: Kubernetes config - create .kube directory
+      shell: mkdir -p {{ user_home }}/.kube
+
+    - name: Kubernetes config - copy template kubeconfig
+      shell: cp /etc/kubernetes/admin.conf {{ user_home }}/.kube/config
+      become: yes
+
+    - name: Kubernetes config - change ownership of kubeconfig
+      shell: "chown {{ ansible_user }}:{{ ansible_user }} {{ user_home }}/.kube/config"
+      become: yes
+
+      #Para instalar calico para usar la red elegida, hace falta modificar el fichero yaml de configuración de calico. Para ello, copio esta plantilla.
+    - name: Copy Calico custom resource yaml.
+      template:
+        src: "files/calico-custom.yaml.j2"
+        dest: "{{ user_home }}/calico-custom.yaml"
+
+      #Ahora, instalo los requisitos de calico.
+
+    - name: Copy tigera_operator.yaml manifest
+      template:
+        src: "files/tigera-operator.yaml.j2"
+        dest: "{{ user_home }}/tigera-operator.yaml"
+
+      #Además, instalo los binarios de calicoctl, la línea de consola para acceder a todas las configuraciones de calico disponibles.
+    - name: Install calicoctl 
+      shell: curl -L {{ calicoctl_binary_url }} -o /usr/local/bin/calicoctl
+      become: true
+
+      ##ESTE PASO PUEDE FALLAR, SI FALLA HACER A MANO EN LA MÁQUINA PORQUE PROBABLEMENTE SEA DE ANSIBLE
+    - name: Install Calico - tigera_operator.yaml
+      shell: kubectl create -f {{ user_home }}/tigera-operator.yaml
+      register: tigera_installed
+      failed_when:
+        - '"error validating" in tigera_installed.stdout'
+
+      #Por fin, instalo calico.
+      ##ESTE PASO PUEDE FALLAR, SI FALLA HACER A MANO EN LA MÁQUINA PORQUE PROBABLEMENTE SEA DE ANSIBLE
+    - name: Install Calico - calico 
+      shell: kubectl create -f {{ user_home }}/calico-custom.yaml
+      register: calico_installed
+      failed_when:
+        - '"error validating" in calico_installed.stdout'
+
+

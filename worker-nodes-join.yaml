@@ -5,8 +5,9 @@
 
       #Convierto el comando para unir a los nodos trabajadores en un objeto de ansible.
     - name: Get join command 
-      shell: grep -e 'kubeadm join [[:print:]]*' cluster_initialized.log | grep -v "control-plane"
+      shell: cat {{ user_home }}/joinworker.txt
       register: workers_join_command_raw
+      become: yes
 
       #Creo una variable global de asnible cuyo contenido será el contenido del atributo del objeto que contiene la información que necesito: el mandato para unir los nodos trabajadores.
     - name: Make variables global
@@ -19,5 +20,5 @@
 
       #Uno los nodos trabajadores y guardo el resultado en un log.
     - name: Join control plane
-      shell: "{{ workers_join_command }} >> {{ user_home }}/cluster_joined_worker.log"
+      shell: "{{ hostvars.kmaster1.workers_join_command }} >> {{ user_home }}/cluster_joined_worker.log"
       become: true

@@ -1,0 +1,79 @@
+---
+- name: Control plane manifests
+  hosts: kmaster_main
+  tasks:
+
+      #Convierto el comando de unirse al control plane en un objeto de ansible.
+    - name: Get join command for other master nodes - part 1.
+      shell: cat {{ user_home }}/joinmaster.txt
+      register: kube_master_join_raw
+      become: yes
+
+      #Creo variables globales usando los atributos de los obejtos anteriores con la información que necesito.
+    - name: Make variables global
+      set_fact: 
+        kube_master_join: "{{ kube_master_join_raw.stdout_lines[0] }}"
+
+- name: 
+  hosts: kmaster_secondary
+  vars_files:
+    - vars/cni_calico_config.yml
+    - vars/manifest.yaml
+  tasks:
+
+      #Ejecuto el comando que necesito y guardo el output en un log.
+    - name: Join control plane
+      shell: "{{ hostvars.kmaster1.kube_master_join }} >> {{ user_home }}/cluster_joined_control_plane.log"
+      become: true
+
+      #Crear los directorios para la configuración de keepalived y haproxy si no existen.
+    - name: Creake keepalived directory.
+      shell: mkdir /etc/keepalived/
+      args:
+        creates: /etc/keepalived/
+      become: yes
+
+    - name: Creake haproxy directory.
+      shell: mkdir /etc/haproxy/
+      become: yes
+      args:
+        creates: /etc/haproxy/
+
+      #Copiar la configuración de keepalived y haproxy.
+    - name: Copy keepalived main config.
+      template:
+        src: "files/keepalived.conf.j2"
+        dest: "/etc/keepalived/keepalived.conf"
+      become: yes
+
+    - name: Copy keepalived check apiserver script.
+      template:
+        src: "files/check_apiserver.sh.j2"
+        dest: "/etc/keepalived/check_apiserver.sh"
+      become: yes
+
+    - name: Copy haproxy main config.
+      template:
+        src: "files/haproxy.cfg.j2"
+        dest: "/etc/haproxy/haproxy.cfg"
+      become: yes  
+
+      #Copiar los manifiestos.
+    - name: Copy keepalived manifest.
+      template:
+        src: "files/keepalived_manifest.yaml.j2"
+        dest: "/etc/kubernetes/manifests/keepalived.yaml"
+        force: no
+      become: yes
+
+    - name: Copy haproxy manifest.
+      template:
+        src: "files/haproxy_manifest.yaml.j2"
+        dest: "/etc/kubernetes/manifests/haproxy.yaml"
+        force: no
+      become: yes
+
+      #Además, instalo los binarios de calicoctl, la línea de consola para acceder a todas las configuraciones de calico disponibles.
+    - name: Install calicoctl 
+      shell: curl -L {{ calicoctl_binary_url }} -o /usr/local/bin/calicoctl
+      become: true

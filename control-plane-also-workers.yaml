@@ -1,0 +1,8 @@
+---
+- name: Control plane
+  hosts: control_plane
+  tasks:
+
+    - name: Make control plane capable of schedule pods. 
+      shell: kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+      become: true

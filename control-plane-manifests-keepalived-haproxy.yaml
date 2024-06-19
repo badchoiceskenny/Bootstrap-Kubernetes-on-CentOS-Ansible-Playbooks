@@ -1,0 +1,51 @@
+---
+- name: Control plane manifests
+  hosts: kmaster_main
+  vars_files:
+    - vars/manifest.yaml
+  tasks:
+
+      #Crear los directorios para la configuración de keepalived y haproxy si no existen.
+    - name: Creake keepalived directory.
+      shell: mkdir /etc/keepalived/
+      args:
+        creates: /etc/keepalived/
+      become: yes
+      
+    - name: Creake haproxy directory.
+      shell: mkdir /etc/haproxy/
+      become: yes
+      args:
+        creates: /etc/haproxy/
+
+      #Copiar la configuración de keepalived y haproxy.
+    - name: Copy keepalived main config.
+      template:
+        src: "files/keepalived.conf.j2"
+        dest: "/etc/keepalived/keepalived.conf"
+      become: yes
+
+    - name: Copy keepalived check apiserver script.
+      template:
+        src: "files/check_apiserver.sh.j2"
+        dest: "/etc/keepalived/check_apiserver.sh"
+      become: yes
+
+    - name: Copy haproxy main config.
+      template:
+        src: "files/haproxy.cfg.j2"
+        dest: "/etc/haproxy/haproxy.cfg"
+      become: yes
+
+      #Copiar los manifiestos.
+    - name: Copy keepalived manifest.
+      template:
+        src: "files/keepalived_manifest.yaml.j2"
+        dest: "/etc/kubernetes/manifests/keepalived.yaml"
+      become: yes
+    
+    - name: Copy haproxy manifest.
+      template:
+        src: "files/haproxy_manifest.yaml.j2"
+        dest: "/etc/kubernetes/manifests/haproxy.yaml"
+      become: yes

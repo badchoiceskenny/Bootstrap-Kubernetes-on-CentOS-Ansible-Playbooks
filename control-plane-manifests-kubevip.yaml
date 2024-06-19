@@ -1,0 +1,17 @@
+---
+- name: Control plane manifests
+  hosts: kmaster_main
+  vars_files:
+    - vars/manifest.yaml
+  tasks:
+
+      #Hay que generar el manifiesto de kube-vip. Para solucionar problemas con su creación desde ansible, se copia una plantilla de script al nodo objetivo.
+    - name: Generate kube-vip manifest, IP export
+      template:
+        src: "files/kube-vip.sh.j2"
+        dest: "$HOME/kube-vip.sh"
+
+      #Ahora, se ejecuta ese script de forma local en la máquina objetivo.
+    - name: Execute the script.
+      shell: "sh {{ user_home }}/kube-vip.sh"
+      become: true

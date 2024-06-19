@@ -1,0 +1,11 @@
+---
+- name: Basic config to all nodes
+  hosts: all
+  become: yes 
+  tasks:
+
+    - name: Set hostname
+      shell: "hostnamectl set-hostname {{ ansikubernetes_hostname }}"
+
+    - name: Reboot
+      shell: reboot 
